@@ -8,6 +8,9 @@
 # Isolation (design): empty working directory outside any checkout, fresh COPILOT_HOME, no MCP servers, no tool
 # allowed, deny-all permission handler, no custom instructions; prompts carry no repository content and no secrets.
 # Every Copilot request is logged "PROBE-PA08 copilot_request_utc=<UTC>" immediately BEFORE it is sent.
+# SDK auth: the job token reaches the runtime only as COPILOT_GITHUB_TOKEN in the runtime's environment, with the
+# SDK's default auto-login (step 2.26 fix of step 2.8's sdk-setup block); every SDK job logs its auth status before
+# any request.
 # Canonical source: probes/pa08-copilot-inference/workflows/probe-pa08-infer.yml
 # Deployed copy:    .github/workflows/probe-pa08-infer.yml on master (byte-identical).
 name: probe-pa08-infer
@@ -127,7 +130,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pa08-sdk"
           cd "$RUNNER_TEMP/pa08-sdk"
           npm init -y > /dev/null
-          npm install @github/copilot-sdk > /dev/null
+          npm install @github/copilot-sdk@1.0.14 > /dev/null
           echo "PROBE-PA08 job=sdk sdk_version=$(node -p "require('./node_modules/@github/copilot-sdk/package.json').version")"
           npm ls --all 2> /dev/null | grep -i copilot | sed 's/^/PROBE-PA08 npm_ls: /' | head -n 10
 
@@ -154,9 +157,17 @@ jobs:
                 baseDirectory: process.env.PROBE_COPILOT_HOME,
                 workingDirectory: process.env.PROBE_EMPTY_DIR,
                 env: { ...process.env, COPILOT_GITHUB_TOKEN: token },
-                useLoggedInUser: false,
+                // useLoggedInUser keeps its default (true). false makes the SDK start the runtime with --no-auto-login, and the
+                // runtime then ignores COPILOT_GITHUB_TOKEN (step 2.8). Nothing else can log in: fresh COPILOT_HOME, no gh login.
                 logLevel: 'error',
               });
+            const authStatus = async (c) => {
+              try {
+                return clip(await c.getAuthStatus());
+              } catch (e) {
+                return `error ${errText(e)}`;
+              }
+            };
             const baseSessionConfig = () => ({
               onPermissionRequest: () => ({ kind: 'reject', feedback: 'tools are disabled in this probe' }),
               availableTools: [],
@@ -174,6 +185,7 @@ jobs:
             try {
               await client.start();
               log('client_started=yes');
+              log(`auth_status=${await authStatus(client)}`);
               try {
                 log(`quota_before=${clip(await client.rpc.account.getQuota({}))}`);
               } catch (e) {
@@ -251,7 +263,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pa08-sdk"
           cd "$RUNNER_TEMP/pa08-sdk"
           npm init -y > /dev/null
-          npm install @github/copilot-sdk > /dev/null
+          npm install @github/copilot-sdk@1.0.14 > /dev/null
           echo "PROBE-PA08 job=sdk-omit sdk_version=$(node -p "require('./node_modules/@github/copilot-sdk/package.json').version")"
           npm ls --all 2> /dev/null | grep -i copilot | sed 's/^/PROBE-PA08 npm_ls: /' | head -n 10
 
@@ -278,9 +290,17 @@ jobs:
                 baseDirectory: process.env.PROBE_COPILOT_HOME,
                 workingDirectory: process.env.PROBE_EMPTY_DIR,
                 env: { ...process.env, COPILOT_GITHUB_TOKEN: token },
-                useLoggedInUser: false,
+                // useLoggedInUser keeps its default (true). false makes the SDK start the runtime with --no-auto-login, and the
+                // runtime then ignores COPILOT_GITHUB_TOKEN (step 2.8). Nothing else can log in: fresh COPILOT_HOME, no gh login.
                 logLevel: 'error',
               });
+            const authStatus = async (c) => {
+              try {
+                return clip(await c.getAuthStatus());
+              } catch (e) {
+                return `error ${errText(e)}`;
+              }
+            };
             const baseSessionConfig = () => ({
               onPermissionRequest: () => ({ kind: 'reject', feedback: 'tools are disabled in this probe' }),
               availableTools: [],
@@ -298,6 +318,7 @@ jobs:
             try {
               await client.start();
               log('client_started=yes');
+              log(`auth_status=${await authStatus(client)}`);
               try {
                 log(`quota_before=${clip(await client.rpc.account.getQuota({}))}`);
               } catch (e) {
@@ -375,7 +396,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pa08-sdk"
           cd "$RUNNER_TEMP/pa08-sdk"
           npm init -y > /dev/null
-          npm install @github/copilot-sdk > /dev/null
+          npm install @github/copilot-sdk@1.0.14 > /dev/null
           echo "PROBE-PA08 job=detect sdk_version=$(node -p "require('./node_modules/@github/copilot-sdk/package.json').version")"
           npm ls --all 2> /dev/null | grep -i copilot | sed 's/^/PROBE-PA08 npm_ls: /' | head -n 10
 
@@ -402,9 +423,17 @@ jobs:
                 baseDirectory: process.env.PROBE_COPILOT_HOME,
                 workingDirectory: process.env.PROBE_EMPTY_DIR,
                 env: { ...process.env, COPILOT_GITHUB_TOKEN: token },
-                useLoggedInUser: false,
+                // useLoggedInUser keeps its default (true). false makes the SDK start the runtime with --no-auto-login, and the
+                // runtime then ignores COPILOT_GITHUB_TOKEN (step 2.8). Nothing else can log in: fresh COPILOT_HOME, no gh login.
                 logLevel: 'error',
               });
+            const authStatus = async (c) => {
+              try {
+                return clip(await c.getAuthStatus());
+              } catch (e) {
+                return `error ${errText(e)}`;
+              }
+            };
             const baseSessionConfig = () => ({
               onPermissionRequest: () => ({ kind: 'reject', feedback: 'tools are disabled in this probe' }),
               availableTools: [],
@@ -422,6 +451,7 @@ jobs:
             try {
               await client.start();
               log('client_started=yes');
+              log(`auth_status=${await authStatus(client)}`);
               try {
                 log(`quota_before=${clip(await client.rpc.account.getQuota({}))}`);
               } catch (e) {
@@ -509,7 +539,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pa08-sdk"
           cd "$RUNNER_TEMP/pa08-sdk"
           npm init -y > /dev/null
-          npm install @github/copilot-sdk > /dev/null
+          npm install @github/copilot-sdk@1.0.14 > /dev/null
           echo "PROBE-PA08 job=detect-noperm sdk_version=$(node -p "require('./node_modules/@github/copilot-sdk/package.json').version")"
           npm ls --all 2> /dev/null | grep -i copilot | sed 's/^/PROBE-PA08 npm_ls: /' | head -n 10
 
@@ -536,9 +566,17 @@ jobs:
                 baseDirectory: process.env.PROBE_COPILOT_HOME,
                 workingDirectory: process.env.PROBE_EMPTY_DIR,
                 env: { ...process.env, COPILOT_GITHUB_TOKEN: token },
-                useLoggedInUser: false,
+                // useLoggedInUser keeps its default (true). false makes the SDK start the runtime with --no-auto-login, and the
+                // runtime then ignores COPILOT_GITHUB_TOKEN (step 2.8). Nothing else can log in: fresh COPILOT_HOME, no gh login.
                 logLevel: 'error',
               });
+            const authStatus = async (c) => {
+              try {
+                return clip(await c.getAuthStatus());
+              } catch (e) {
+                return `error ${errText(e)}`;
+              }
+            };
             const baseSessionConfig = () => ({
               onPermissionRequest: () => ({ kind: 'reject', feedback: 'tools are disabled in this probe' }),
               availableTools: [],
@@ -556,6 +594,7 @@ jobs:
             try {
               await client.start();
               log('client_started=yes');
+              log(`auth_status=${await authStatus(client)}`);
               try {
                 log(`quota_before=${clip(await client.rpc.account.getQuota({}))}`);
               } catch (e) {
