@@ -485,8 +485,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set +e
           out="$(gh api /copilot_internal/user --jq '{login, copilot_plan, access_type_sku, chat_enabled, quota_reset_date}' 2>&1)"
-          echo "PROBE-PA08 job=detect copilot_internal_user exit=$? response=$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-400)"
+          code=$?
+          set -e
+          echo "PROBE-PA08 job=detect copilot_internal_user exit=$code response=$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-400)"
 
   detect-noperm:
     name: detect-noperm
@@ -616,5 +619,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set +e
           out="$(gh api /copilot_internal/user --jq '{login, copilot_plan, access_type_sku, chat_enabled, quota_reset_date}' 2>&1)"
-          echo "PROBE-PA08 job=detect-noperm copilot_internal_user exit=$? response=$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-400)"
+          code=$?
+          set -e
+          echo "PROBE-PA08 job=detect-noperm copilot_internal_user exit=$code response=$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-400)"
